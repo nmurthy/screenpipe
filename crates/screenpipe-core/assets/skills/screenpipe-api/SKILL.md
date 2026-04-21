@@ -68,11 +68,13 @@ Decision tree:
 ### Critical Rules
 
 1. **ALWAYS include `start_time`** — queries without time bounds WILL timeout
-2. **Start with 1-2 hour ranges** — expand only if no results
-3. **Use `app_name`** when user mentions a specific app
-4. **Keep `limit` low** (5-10) initially
-5. **"recent"** = 30 min. **"today"** = since midnight. **"yesterday"** = yesterday's range
-6. If timeout, narrow the time range
+2. **Prefer relative times** (`start_time=1h ago`, `2d ago`, `30m ago`) over absolute ISO timestamps — they're timezone-safe. When the user says "11am today", convert via "Xh ago" math rather than guessing a UTC offset.
+3. **If you must use absolute times**, determine the local timezone first — run `date +%z` (returns e.g. `-0700`) or check any timestamp in `GET /activity-summary` (they include the offset, e.g. `2026-04-21T09:52:00-07:00`). Never guess the offset.
+4. **Start with 1-2 hour ranges** — expand only if no results
+5. **Use `app_name`** when user mentions a specific app
+6. **Keep `limit` low** (5-10) initially
+7. **"recent"** = 30 min. **"today"** = since midnight. **"yesterday"** = yesterday's range
+8. If timeout, narrow the time range
 
 ### Response Format
 
