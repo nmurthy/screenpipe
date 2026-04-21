@@ -6968,18 +6968,21 @@ LIMIT ? OFFSET ?
         limit: u32,
         offset: u32,
     ) -> Result<Vec<MeetingRecord>, SqlxError> {
+        // meeting_start is stored in UTC (`...Z`) but callers may send any offset.
+        // Wrap both sides in datetime() so SQLite normalizes to UTC before compare,
+        // otherwise lexicographic string comparison silently drops matches.
         let mut sql = String::from(
             "SELECT id, meeting_start, meeting_end, meeting_app, title, attendees, note, \
              detection_source, created_at FROM meetings WHERE 1=1",
         );
         if start_time.is_some() {
-            sql.push_str(" AND meeting_start >= ?1");
+            sql.push_str(" AND datetime(meeting_start) >= datetime(?1)");
         }
         if end_time.is_some() {
             sql.push_str(if start_time.is_some() {
-                " AND meeting_start <= ?2"
+                " AND datetime(meeting_start) <= datetime(?2)"
             } else {
-                " AND meeting_start <= ?1"
+                " AND datetime(meeting_start) <= datetime(?1)"
             });
         }
         sql.push_str(" ORDER BY meeting_start DESC");
