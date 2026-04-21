@@ -85,14 +85,16 @@ impl VisionManager {
         // Single broadcast channel shared across all monitors + UI recorder.
         let (trigger_tx, _rx) = tokio::sync::broadcast::channel::<CaptureTrigger>(64);
 
-        // Focus-aware capture is always on. `new_tracker()` always succeeds —
-        // returns a null tracker on platforms without a native impl. Controller
-        // fallback handles `Unknown` events by treating all monitors as Active,
-        // so users whose systems can't report focus still get the pre-feature
-        // behaviour (every monitor captured at full rate).
+        // Local patch: force the NullFocusTracker so every monitor stays Active.
+        // Focus-aware idle-down down-samples unfocused monitors to ~5s diff-only
+        // and eventually pauses them, which drops meeting/video capture on a
+        // secondary display whenever the user types on another monitor. The
+        // controller's Unknown-event fallback already treats all monitors as
+        // Active, so this keeps pre-feature behaviour (full-rate everywhere).
         let focus_controller = {
             let _guard = vision_handle.enter();
-            let tracker = crate::focus_tracker::new_tracker();
+            let tracker: Arc<dyn crate::focus_tracker::FocusTracker> =
+                Arc::new(crate::focus_tracker::NullFocusTracker::new());
             FocusAwareController::new(tracker)
         };
 
